@@ -34,10 +34,11 @@ All SDK commands such as "takeoff" or "speed 80" plus the following:
 * right  ... go right dist centimeters   (see "dist" command)
 * h or 5 ... stop current movement and hover
 * p  ... "PANIC!" = stop motors immediately
-* -  ... reduce "dist" by half         (see "dist" command)
-* +  ... double "dist"                 (see "dist" command)
-* /  ... reduce "ang" by half          (see "ang" command)
-* *  ... double "ang"                  (see "ang" command)
+* minus sign  ... reduce "dist" by half         (see "dist" command)
+* plus sign   ... double "dist"                 (see "dist" command)
+* slash       ... reduce "ang" by half          (see "ang" command)
+* asterisk    ... double "ang"                  (see "ang" command)
+* sleep n ... pause for n seconds (fractons of seconds are allowed)
 * ESC... return to string-based input
 
 
