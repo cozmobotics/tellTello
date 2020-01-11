@@ -2,9 +2,15 @@
 A console-based frontend to the SDK of the Ryze Tello Quadrocopter
 Written in Python3, runs on Windows (sorry Linux users)
 
+## What it does:
+* Fly Tello with text commands (like "ccw 90") or with keys (like w/a/s/d and cursor keys)
+* execute commands from a text file
+* watch selected variables from the status string and write them to a comma-separated list (csv-format)
+
+
 Input methods: string- or key-based.
 The program starts with string-based input. Use the command "key" to switch to key-based input.
-Use the ESC key to switch back to string-basedinput.
+Use the ESC key to switch back to string-based input.
 
 ## String-based inputs: 
 All SDK commands such as "takeoff" or "speed 80" plus the following:
@@ -12,10 +18,11 @@ All SDK commands such as "takeoff" or "speed 80" plus the following:
 * key     ... enter key mode
 * watch a b c d ... select which values to extrace from state string, like "watch bat baro agx". "watch" without parameters will reset to non-interpreted state.
 * watchperiod n ... every n seconds, a state frame will be printed. n=-1 turns off the state strings.
-* script file   ... opens file which contains commands to execute
 * state n ... output n lines of status strings
 * dist  n ... set the distance for move commands (to be given in key mode, such as "w", which will make Tello go up n centimeters)
 * ang   n ... set the angle for rotate commands (to be given in key mode, such as "a", which will make Tello turn left n degrees)
+* script file   ... opens file which contains commands to execute
+* sleep n ... pause for n seconds (fractons of seconds are allowed)
 * end     ... end tellTello
 
 ## key-based command input:
