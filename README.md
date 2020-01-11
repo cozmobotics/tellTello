@@ -54,6 +54,6 @@ optional arguments:
                         debug level ... 0=no debug messages, higher number for
                         more messages
 
-* enter "help" command for more information
+enter "help" command for more information
 
 
