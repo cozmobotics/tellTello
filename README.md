@@ -7,10 +7,10 @@ The program starts with string-based input. Use the command "key" to switch to k
 Use the ESC key to switch back to string-basedinput.
 
 ##String-based inputs: All SDK commands such as "takeoff" or "speed 80" plus the following:
-* key     ... enter key mode
 * help    ... this help
-* watch a b c d ... select which values to extrace from state string, like "watch bat baro agx". "watch" will reset to non-interpreted state.
-* watchperiod n ... every n seconds, a satete frame will be printed. n=-1 turns off the state strings.
+* key     ... enter key mode
+* watch a b c d ... select which values to extrace from state string, like "watch bat baro agx". "watch" without parameters will reset to non-interpreted state.
+* watchperiod n ... every n seconds, a state frame will be printed. n=-1 turns off the state strings.
 * script file   ... opens file which contains commands to execute
 * state n ... output n lines of status strings
 * dist  n ... set the distance for move commands (to be given in key mode, such as "w", which will make Tello go up n centimeters)
