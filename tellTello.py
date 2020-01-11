@@ -3,6 +3,8 @@
 
 # todo:
 # don't print watch immediately but write it to an array and print it later 
+# shift-w/a/s/d/left/..... do double dist/angle 
+# function keys while usung key mode 
 
 # done:
 # scripting feature 
@@ -36,14 +38,14 @@ def help ():
 	print ("Use the ESC key to switch back to string-basedinput. ")
 	print ("")
 	print ("String-based inputs: All SDK commands such as \"takeoff\" or \"speed 80\" plus the following: ")
-	print ("key     ... enter key mode")
 	print ("help    ... this help")
-	print ("watch a b c d ... select which values to extrace from state string, like \"watch bat baro agx\". \"watch\" will reset to non-interpreted state.")
-	print ("watchperiod n ... every n seconds, a satete frame will be printed. n=-1 turns off the state strings. ")
-	print ("script file   ... opens file which contains commands to execute ")
+	print ("key     ... enter key mode")
+	print ("watch a b c d ... select which values to extrace from state string, like \"watch bat baro agx\". \"watch\" without parameters will reset to non-interpreted state.")
+	print ("watchperiod n ... every n seconds, a state frame will be printed. n=-1 turns off the state strings. ")
 	print ("state n ... output n lines of status strings")
 	print ("dist  n ... set the distance for move commands (to be given in key mode, such as \"w\", which will make Tello go up n centimeters)")
 	print ("ang   n ... set the angle for rotate commands (to be given in key mode, such as \"a\", which will make Tello turn left n degrees)")
+	print ("script file   ... opens file which contains commands to execute ")
 	print ("end     ... end tellTello")
 	print ("")
 	print ("key-based command input:")
@@ -215,9 +217,9 @@ def interpreteState (StateString):
 			Value = StateDict[Key]
 		except Exception:
 			Value = 'error'
-		OutString = OutString.replace ('.',',') # +++ add an arg to decide whether or not to replace
 		OutString = OutString + Value + ';'
 	OutString = OutString + LastCommand + ';'
+	OutString = OutString.replace ('.',',') # +++ add an arg to decide whether or not to replace
 	print (OutString)
 		
 	
