@@ -6,7 +6,8 @@ Input methods: string- or key-based.
 The program starts with string-based input. Use the command "key" to switch to key-based input.
 Use the ESC key to switch back to string-basedinput.
 
-## String-based inputs: All SDK commands such as "takeoff" or "speed 80" plus the following:
+## String-based inputs: 
+All SDK commands such as "takeoff" or "speed 80" plus the following:
 * help    ... this help
 * key     ... enter key mode
 * watch a b c d ... select which values to extrace from state string, like "watch bat baro agx". "watch" without parameters will reset to non-interpreted state.
