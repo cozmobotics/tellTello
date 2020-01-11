@@ -40,9 +40,11 @@ All SDK commands such as "takeoff" or "speed 80" plus the following:
 * *  ... double "ang"                  (see "ang" command)
 * ESC... return to string-based input
 
+
+## command line:
+
 python tellTello.py [arguments]
 
-## optional arguments:
 *   -h, --help            show this help message and exit
 *   --ip IP               ip address, default=192.168.10.1
 *   -s SCRIPT, --script SCRIPT
