@@ -6,7 +6,7 @@ Input methods: string- or key-based.
 The program starts with string-based input. Use the command "key" to switch to key-based input.
 Use the ESC key to switch back to string-basedinput.
 
-##String-based inputs: All SDK commands such as "takeoff" or "speed 80" plus the following:
+## String-based inputs: All SDK commands such as "takeoff" or "speed 80" plus the following:
 * help    ... this help
 * key     ... enter key mode
 * watch a b c d ... select which values to extrace from state string, like "watch bat baro agx". "watch" without parameters will reset to non-interpreted state.
@@ -17,7 +17,7 @@ Use the ESC key to switch back to string-basedinput.
 * ang   n ... set the angle for rotate commands (to be given in key mode, such as "a", which will make Tello turn left n degrees)
 * end     ... end tellTello
 
-##key-based command input:
+## key-based command input:
 * F1 or ? ... this help
 * F2 ... print one status string (equals "state 1")
 * c  ... command (send the string "command" to Tello)
@@ -41,7 +41,7 @@ Use the ESC key to switch back to string-basedinput.
 
 python tellTello.py [arguments]
 
-optional arguments:
+## optional arguments:
 *   -h, --help            show this help message and exit
 *   --ip IP               ip address, default=192.168.10.1
 *   -s SCRIPT, --script SCRIPT
