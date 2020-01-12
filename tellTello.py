@@ -3,8 +3,11 @@
 
 # todo:
 # don't print watch immediately but write it to an array and print it later 
+# different watch mode which is mor human-readable 
 # shift-w/a/s/d/left/..... do double dist/angle 
 # function keys while usung key mode 
+# joystick-mode: "ready for takeoff": rc -100 -100 -100 100
+# Ctrl-C in key or joy mode causes program to hang 
 
 # done:
 # scripting feature 
@@ -14,6 +17,8 @@
 # watch feature
 # debug feature
 # sleep command (via timer task, don't use python's sleep command - so the user can interact while sleeping) 
+# spacebar to stop (key and joy mode)
+# joystick mode, send rc commands
 
 import threading 
 import socket
@@ -28,47 +33,67 @@ import argparse
 def help ():
 	'''print help message. +++ variaous topics +++ information like battery, temperature '''
 	
-	print ("tellTello.py")
-	print ("************")
+	print ("# tellTello.py V 1.1")
+	print ("# ******************")
 	print ("")
 	print ("A console-based frontend to the SDK of the Ryze Tello Quadrocopter")
 	print ("")
-	print ("Input methods: string- or key-based. ")
+	print ("## What it does:")
+	print ("* Fly Tello with text commands (like \"ccw 90\") or with keys (like w/a/s/d and cursor keys)")
+	print ("* execute commands from a text file ")
+	print ("* watch selected variables from the status string and write them to a comma-separated list (csv-format) ")
+	print ("")
+	
+	print ("## Input methods: string- or key-based. ")
 	print ("The program starts with string-based input. Use the command \"key\" to switch to key-based input. ")
 	print ("Use the ESC key to switch back to string-basedinput. ")
 	print ("")
-	print ("String-based inputs: All SDK commands such as \"takeoff\" or \"speed 80\" plus the following: ")
-	print ("help    ... this help")
-	print ("key     ... enter key mode")
-	print ("watch a b c d ... select which values to extrace from state string, like \"watch bat baro agx\". \"watch\" without parameters will reset to non-interpreted state.")
-	print ("watchperiod n ... every n seconds, a state frame will be printed. n=-1 turns off the state strings. ")
-	print ("state n ... output n lines of status strings")
-	print ("dist  n ... set the distance for move commands (to be given in key mode, such as \"w\", which will make Tello go up n centimeters)")
-	print ("ang   n ... set the angle for rotate commands (to be given in key mode, such as \"a\", which will make Tello turn left n degrees)")
-	print ("script file   ... opens file which contains commands to execute ")
-	print ("end     ... end tellTello")
+	print ("### String-based inputs: All SDK commands such as \"takeoff\" or \"speed 80\" plus the following: ")
+	print ("* help    ... this help")
+	print ("* key     ... enter key mode")
+	print ("* joy     ... enter joystick mode")
+	print ("* watch a b c d ... select which values to extrace from state string, like \"watch bat baro agx\". \"watch\" without parameters will reset to non-interpreted state.")
+	print ("* watchperiod n ... every n seconds, a state frame will be printed. n=-1 turns off the state strings. ")
+	print ("* state n ... output n lines of status strings")
+	print ("* dist  n ... set the distance for move commands (to be given in key mode, such as \"w\", which will make Tello go up n centimeters)")
+	print ("* ang   n ... set the angle for rotate commands (to be given in key mode, such as \"a\", which will make Tello turn left n degrees)")
+	print ("* script file... opens file which contains commands to execute ")
+	print ("* sleep n ... pause for n seconds (fractons of seconds are allowed) ")
+	print ("* end     ... end tellTello")
 	print ("")
-	print ("key-based command input:")
-	print ("F1 or ? ... this help")
-	print ("F2 ... print one status string (equals \"state 1\")")
-	print ("c  ... command (send the string \"command\" to Tello)")
-	print ("t  ... takeoff")
-	print ("l  ... land")
-	print ("w or 8 ... go up dist centimeters      (see \"dist\" command)")
-	print ("a or 4 ... turn left (ccw) ang degrees (see \"ang\"  command)")
-	print ("s or 2 ... go down dist centimeters    (see \"dist\" command)")
-	print ("d or 6 ... turn right (cw) ang degrees (see \"ang\"  command)")
-	print ("up     ... go forward dist centimeters (see \"dist\" command)")
-	print ("left   ... go left dist centimeters    (see \"dist\" command)")
-	print ("down   ... go backward dist centimeters(see \"dist\" command)")
-	print ("right  ... go right dist centimeters   (see \"dist\" command)")
-	print ("h or 5 ... stop current movement and hover")
-	print ("p  ... \"PANIC!\" = stop motors immediately")
-	print ("-  ... reduce \"dist\" by half         (see \"dist\" command)")
-	print ("+  ... double \"dist\"                 (see \"dist\" command)")
-	print ("/  ... reduce \"ang\" by half          (see \"ang\" command)")
-	print ("*  ... double \"ang\"                  (see \"ang\" command)")
-	print ("ESC... return to string-based input")
+	print ("### key-based command input:")
+	print ("* F1 or ? ... this help")
+	print ("* F2 ... print one status string (equals \"state 1\")")
+	print ("* c  ... command (send the string \"command\" to Tello)")
+	print ("* t  ... takeoff")
+	print ("* l  ... land")
+	print ("#### Motion keys in key mode: ")
+	print ("* w or 8 ... go up dist centimeters      (see \"dist\" command)")
+	print ("* a or 4 ... turn left (ccw) ang degrees (see \"ang\"  command)")
+	print ("* s or 2 ... go down dist centimeters    (see \"dist\" command)")
+	print ("* d or 6 ... turn right (cw) ang degrees (see \"ang\"  command)")
+	print ("*  up     ... go forward dist centimeters (see \"dist\" command)")
+	print ("*  left   ... go left dist centimeters    (see \"dist\" command)")
+	print ("*  down   ... go backward dist centimeters(see \"dist\" command)")
+	print ("*  right  ... go right dist centimeters   (see \"dist\" command)")
+	print ("#### Motion keys  in joystick mode: ")
+	print ("* w or 8 ... move simulated joystick up by 10%      ")
+	print ("* a or 4 ... move simulated joystick ccw by 10%")
+	print ("* s or 2 ... move simulated joystick down by 10%")
+	print ("* d or 6 ... move simulated joystick cw by 10% ")
+	print ("* up     ... move simulated joystick forward by 10% ")
+	print ("* left   ... move simulated joystick left by 10%    ")
+	print ("* down   ... move simulated joystick back by 10%")
+	print ("* right  ... move simulated joystick right by 10%")
+	print ("* h,H,5,space ... stop current movement and hover")
+	print ("* p  ... \"PANIC!\" = stop motors immediately")
+	print ("*  -  ... reduce \"dist\" by half         (see \"dist\" command)")
+	print ("*  +  ... double \"dist\"                 (see \"dist\" command)")
+	print ("*  /  ... reduce \"ang\" by half          (see \"ang\" command)")
+	print ("*  *  ... double \"ang\"                  (see \"ang\" command)")
+	print ("* j  ... enter joystick mode")
+	print ("* k  ... enter key mode")
+	print ("* ESC... return to string-based input")
 	print ("")
 
 #-----------------------------------------------------------------------------------
@@ -86,6 +111,7 @@ def recvBasic():
 	global Running
 	global DataDecoded
 	global SockBasic
+	global LastCommand
 	
 	debug (3, "Tello recvBasic task started")
 	count = 0
@@ -112,6 +138,24 @@ def recvBasic():
 				debug (1, str(e))
 			debug(2, DataDecoded)
 			TelloReady = True
+			
+			if (DataDecoded != 'ok'):
+				if (LastCommand == 'wifi?'):
+					try: 
+						WifiSnr = int(DataDecoded)
+					except Exception:
+						WifiSnr = -1
+					debug (3, "wifi signal noise ratio " + str(WifiSnr))
+				elif (LastCommand == 'sdk?'):
+					if (DataDecoded == 'unknown command'):
+						Sdk = 10    # assume that we are on SDK 1.x 
+					else:
+						try: 
+							Sdk = int(DataDecoded)
+						except Exception:
+							Sdk = -1
+					debug (3, "SDK version " + str(Sdk))
+	
 
 
 	debug (3, "recvBasic ended")
@@ -131,11 +175,11 @@ def recvBasicDummy():
 def recvState():
 	''' receive the Tello's state, print it as is or call interpreteState ''' 
 	global Running
-	global StateDecoded
 	global SockState
 	global NumFrames
 	global WhichWatch 
 	
+	StateDecoded = ''
 	debug (4, "Tello recvState task started")
 	count = 0
 	while Running: 
@@ -166,10 +210,11 @@ def recvState():
 def recvStateDummy():
 	''' for offline testing '''
 	global Running
-	global StateDecoded
+	# global StateDecoded
 	global NumFrames
 	
 	debug (3, "recvState started")
+	StateDecoded = ''
 	
 	while (Running):
 		StateDecoded = "mid:-1;x:0;y:0;z:0;mpry:0,0,0;pitch:-1;roll:0;yaw:0;vgx:0;vgy:0;vgz:0;templ:51;temph:54;tof:10;h:0;bat:88;baro:38.28;time:0;agx:-13.00;agy:-5.00;agz:-998.00;"
@@ -202,7 +247,7 @@ def interpreteState (StateString):
 			value = PairSplitted[1]
 			debug (6, "keyword = " + keyword + " value= " + value)
 			StateDict[keyword] = value
-			
+	
 	if (OldWhichWatch != WhichWatch):		# new watch set, we'll write a header for the CVS
 		OutString = "watch;time;"
 		for Key in WhichWatch:
@@ -227,7 +272,7 @@ def interpreteState (StateString):
 def timerFunc():
 	''' schedule keepalive and watch '''
 	global Running
-	global Commands
+	# global Commands
 	global TimeKeepalive
 	global NumFrames
 	global TimeState
@@ -320,7 +365,10 @@ def sendCommand(msg):
 	
 	LastCommand = msg
 	debug (2, msg, end='')
-	TelloReady = False
+	
+	if (not ('rc') in msg):
+		TelloReady = False
+	
 	msg = msg.encode(encoding="utf-8") 
 	if (not Offline):
 		sent = SockBasic.sendto(msg, tello_address)
@@ -329,19 +377,29 @@ def sendCommand(msg):
 	TimeKeepalive = time.time() + 10
 	debug (3, ': ' + str(sent) + ' bytes sent')
 
+#--------------------------------------------------------------
+def rcCommand (RcArray):
+	'''create a command like rc 100 100 100 100 from an array of 4 integers'''
+	debug (5, RcArray)
+	RcCommand = 'rc'
+	for Count in range (0,4):
+		if (RcArray[Count] > 100):
+			RcArray[Count] = 100
+		if (RcArray[Count] < -100):
+			RcArray[Count] = -100
+		RcCommand = RcCommand + ' ' + str(RcArray[Count])
+	
+	debug (4, RcCommand)
+	return (RcCommand)
+
 #-----------------------------------------------------------------------------------
 
 '''global variables'''
 Running = True
 DataDecoded = ""
-TelloState = ""
-StateDecoded = ""
-NumFrames = 0
+# StateDecoded = ""
 IpAddress = '192.168.10.1'
 host = ''
-InputModeString = True
-Dist = 40
-Angle = 90
 SockBasic = None
 SockState = None
 TelloReady = True
@@ -359,14 +417,10 @@ tello_address = ('', 0)
 LastCommand = ""
 SleepTime = -1
 
-
 #--------------------------------------------------------------
 def main():
 	''' the main program of tellTello '''
 	global Running
-	global InputModeString
-	global Dist
-	global Angle
 	global SockBasic
 	global SockState
 	global TelloReady
@@ -378,6 +432,12 @@ def main():
 	global DebugLevel
 	global tello_address
 	global SleepTime
+
+	Rc = [0,0,0,0]
+	InputModeString = True
+	InputModeJoy    = False
+	Dist = 40
+	Angle = 90
 
 	parser = argparse.ArgumentParser(description = "tellTello - a console program for the Ryze Robotics Tello quadrocopter", epilog="enter \"help\" command for more information")
 	parser.add_argument("--ip", type=str, default='192.168.10.1', help="ip address, default=192.168.10.1")
@@ -408,7 +468,6 @@ def main():
 		SockBasic.settimeout (1)
 		SockBasic.bind(locaddrBasic)
 
-		#recvThreadBasic create
 		recvThreadBasic = threading.Thread(target=recvBasic)
 		recvThreadBasic.start()
 
@@ -420,14 +479,11 @@ def main():
 		SockState.settimeout (1)
 		SockState.bind(('0.0.0.0', portState))
 
-		#recvThreadState create
 		recvThreadState = threading.Thread(target=recvState)
 		recvThreadState.start()
 	else:
-		#recvThreadBasic create
 		recvThreadBasic = threading.Thread(target=recvBasicDummy)
 		recvThreadBasic.start()
-		#recvThreadState create
 		recvThreadState = threading.Thread(target=recvStateDummy)
 		recvThreadState.start()
 		
@@ -456,13 +512,17 @@ def main():
 	while Running: 
 		
 			if (TelloReady and InputModeString and (len(Commands) == 0) and (len(msg) == 0)):		# +++: only prompt for msg when we do not have a command in the list, but fetch the command only if no key input has arrived
-				msg = input(">");
+				try:
+					msg = input(">");
+				except KeyboardInterrupt:
+					msg = 'end'
+					Running = False
+					raise
 
 			
 			if (not InputModeString): 		# keys have higher priority than Commands 
 				if (msvcrt.kbhit()):
 					Char1 = msvcrt.getch()
-					# print (Char1[0])
 					Char2 = ''
 					if (msvcrt.kbhit()):			# second character when an arrow key, a function key ... is pressed
 						Char2 = msvcrt.getch()
@@ -474,61 +534,126 @@ def main():
 					elif (chr(Char1[0]) == 'l'):
 						msg = 'land'
 					elif (chr(Char1[0]) == '8'):
-						msg = 'up ' + str (Dist)
+						if (InputModeJoy):
+							Rc[2] = Rc[2] + 10
+							msg = rcCommand (Rc)
+						else:
+							msg = 'up ' + str (Dist)
 					elif (chr(Char1[0]) == '2'):
-						msg = 'down ' + str (Dist)
+						if (InputModeJoy):
+							Rc[2] = Rc[2] - 10
+							msg = rcCommand (Rc)
+						else:
+							msg = 'down ' + str (Dist)
 					elif (chr(Char1[0]) == '4'):
-						msg = 'ccw ' + str (Angle)
+						if (InputModeJoy):
+							Rc[3] = Rc[3] - 10
+							msg = rcCommand (Rc)
+						else:
+							msg = 'ccw ' + str (Angle)
 					elif (chr(Char1[0]) == '6'):
-						msg = 'cw ' + str (Angle)
-					elif (chr(Char1[0]) == '5'):
-						msg = 'stop'
-					elif (chr(Char1[0]) == 'w'):
-						msg = 'up ' + str (Dist)
-					elif (chr(Char1[0]) == 's'):
-						msg = 'down ' + str (Dist)
-					elif (chr(Char1[0]) == 'a'):
-						msg = 'ccw ' + str (Angle)
-					elif (chr(Char1[0]) == 'd'):
-						msg = 'cw ' + str (Angle)
-					elif (chr(Char1[0]) == 'h'):		# halt. (not 's' because s is already used for down) ... send immediately (don't wait for TelloReady)
-						sendCommand ('stop')
+						if (InputModeJoy):
+							Rc[3] = Rc[3] + 10
+							msg = rcCommand (Rc)
+						else:
+							msg = 'cw ' + str (Angle)
+					elif (chr(Char1[0]) in ['5','h','H',' ']): # halt
+						if (InputModeJoy):
+							Rc = [0,0,0,0]
+							sendCommand (rcCommand (Rc))
+						else:
+							sendCommand ('stop')
 						msg = ''
+					elif (chr(Char1[0]) == 'w'):
+						if (InputModeJoy):
+							Rc[2] = Rc[2] + 10
+							msg = rcCommand (Rc)
+						else:
+							msg = 'up ' + str (Dist)
+					elif (chr(Char1[0]) == 's'):
+						if (InputModeJoy):
+							Rc[2] = Rc[2] - 10
+							msg = rcCommand(Rc)
+						else:
+							msg = 'down ' + str (Dist)
+					elif (chr(Char1[0]) == 'a'):
+						if (InputModeJoy):
+							Rc[3] = Rc[3] - 10
+							msg = rcCommand(Rc)
+						else:
+							msg = 'ccw ' + str (Angle)
+					elif (chr(Char1[0]) == 'd'):
+						if (InputModeJoy):
+							Rc[3] = Rc[3] + 10
+							msg = rcCommand(Rc)
+						else:
+							msg = 'cw ' + str (Angle)
 					elif (chr(Char1[0]) == 'p'):		# the PANIC! button ... send immediately (don't wait for TelloReady)
 						sendCommand ('emergency')
 						msg = ''
 					elif (chr(Char1[0]) == '-'):
-						if (Dist >= 40):
-							Dist = Dist / 2
-							msg = "dist " + str(Dist)
+						Dist = round(Dist / 2)
+						if (Dist < 20):
+							Dist = 20
+						msg = "dist " + str(Dist)
 					elif (chr(Char1[0]) == '+'):
-						if (Dist <= 250):
-							Dist = Dist * 2
-							msg = "dist " + str(Dist)
+						Dist = Dist * 2
+						if (Dist > 500):
+							Dist = 500
+						msg = "dist " + str(Dist)
 					elif (chr(Char1[0]) == '/'):
-						if (Angle >= 30):
-							Angle = Angle / 2
-							msg = "ang " + str(Angle)
+						Angle = round(Angle / 2)
+						if (Angle < 5):
+							Angle = 5
+						msg = "ang " + str(Angle)
 					elif (chr(Char1[0]) == '*'):
-						if (Angle <= 1800):
-							Angle = Angle * 2
-							msg = "ang " + str(Angle)
+						Angle = Angle * 2
+						if (Angle > 3600):
+							Angle = 3600
+						msg = "ang " + str(Angle)
 					elif (chr(Char1[0]) == '?'):
 						help()
 						msg = ''
+					elif (chr(Char1[0]) == 'j'):
+						msg = ''
+						InputModeString = False
+						InputModeJoy    = True
+						debug (2, "joysitck mode")
+					elif (chr(Char1[0]) == 'k'):
+						msg = ''
+						InputModeString = False
+						InputModeJoy    = False
+						debug (2, "key mode")
 					elif (Char1[0] == 27):
 						msg = ''
 						InputModeString = True
-						debug (2, "key mode ended")
+						InputModeJoy    = False
+						debug (2, "string mode")
 					elif (Char1[0] == 224):
 						if   (Char2[0] == 72):		# up arrow
-							msg = 'forward ' + str (Dist)
+							if (InputModeJoy):
+								Rc[1] = Rc[1] + 10
+								msg = rcCommand (Rc)
+							else:
+								msg = 'forward ' + str (Dist)
 						elif (Char2[0] == 80):		# down arrow
-							msg = 'back ' + str (Dist)
+							if (InputModeJoy):
+								Rc[1] = Rc[1] - 10
+								msg = rcCommand (Rc)
+							else:
+								msg = 'back ' + str (Dist)
 						elif (Char2[0] == 75):		# left arrow
-							msg = 'left ' + str (Dist)
+							if (InputModeJoy):
+								Rc[0] = Rc[0] - 10  # ++++ + oder - ????
+								msg = rcCommand (Rc)
+							else:
+								msg = 'left ' + str (Dist)
 						elif (Char2[0] == 77):		# right arrow
-							msg = 'right ' + str (Dist)
+							if (InputModeJoy):
+								Rc[0] = Rc[0] + 10  # ++++ + oder - ????
+								msg = rcCommand (Rc)
+							else:
+								msg = 'right ' + str (Dist)
 					elif (Char1[0] == 0):
 						if   (Char2[0] == 59):		# F1
 							help()
@@ -560,7 +685,7 @@ def main():
 					if (len(Splitted) > 1):
 						NumFrames = int(Splitted[1])
 					else:
-						debug (1, "please specify teh nuber of state frames to be pronted")
+						debug (1, "please specify the nuber of state frames to be printed")
 					msg = ''
 				elif (keyword == 'dist'):
 					Dist = int(Splitted[1])
@@ -570,6 +695,12 @@ def main():
 					msg = ''
 				elif (keyword == 'key'):
 					InputModeString = False
+					InputModeJoy    = False
+					debug (2, "Use keys to control Tello - t,l,w/a/s/d, cursor keys, ESC to end key mode")
+					msg = ''
+				elif (keyword == 'joy'):
+					InputModeString = False
+					InputModeJoy    = True
 					debug (2, "Use keys to control Tello - t,l,w/a/s/d, cursor keys, ESC to end key mode")
 					msg = ''
 				elif (keyword == 'watch'):
