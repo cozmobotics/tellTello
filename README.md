@@ -25,12 +25,17 @@ Use the ESC key to switch back to string-based input.
 * sleep n ... pause for n seconds (fractons of seconds are allowed)
 * end     ... end tellTello
 
-### key-based command input:
+### key-based command input (key and joy modes):
 * F1 or ? ... this help
 * F2 ... print one status string (equals "state 1")
 * c  ... command (send the string "command" to Tello)
 * t  ... takeoff
 * l  ... land
+* p  ... "PANIC!" = stop motors immediately
+* j  ... enter joystick mode
+* k  ... enter key mode
+* h,H,5,space ... stop current movement and hover
+* ESC... return to string-based input
 #### Motion keys in key mode:
 * w or 8 ... go up dist centimeters      (see "dist" command)
 * a or 4 ... turn left (ccw) ang degrees (see "ang"  command)
@@ -40,6 +45,10 @@ Use the ESC key to switch back to string-based input.
 *  left   ... go left dist centimeters    (see "dist" command)
 *  down   ... go backward dist centimeters(see "dist" command)
 *  right  ... go right dist centimeters   (see "dist" command)
+*  -  ... reduce "dist" by half         (see "dist" command)
+*  +  ... double "dist"                 (see "dist" command)
+*  /  ... reduce "ang" by half          (see "ang" command)
+*  *  ... double "ang"                  (see "ang" command)
 #### Motion keys  in joystick mode:
 * w or 8 ... move simulated joystick up by 10%
 * a or 4 ... move simulated joystick ccw by 10%
@@ -49,15 +58,6 @@ Use the ESC key to switch back to string-based input.
 * left   ... move simulated joystick left by 10%
 * down   ... move simulated joystick back by 10%
 * right  ... move simulated joystick right by 10%
-* h,H,5,space ... stop current movement and hover
-* p  ... "PANIC!" = stop motors immediately
-*  -  ... reduce "dist" by half         (see "dist" command)
-*  +  ... double "dist"                 (see "dist" command)
-*  /  ... reduce "ang" by half          (see "ang" command)
-*  *  ... double "ang"                  (see "ang" command)
-* j  ... enter joystick mode
-* k  ... enter key mode
-* ESC... return to string-based input
 
 ## command line:
 
