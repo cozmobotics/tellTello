@@ -1,4 +1,5 @@
-# tellTello.py V 1.1
+
+# tellTello.py V 1.2
 # ******************
 
 A console-based frontend to the SDK of the Ryze Tello Quadrocopter
@@ -16,11 +17,14 @@ Use the ESC key to switch back to string-based input.
 * help    ... this help
 * key     ... enter key mode
 * joy     ... enter joystick mode
+* ready   ... start motors and enter joystick mode
 * watch a b c d ... select which values to extrace from state string, like "watch bat baro agx". "watch" without parameters will reset to non-interpreted state.
 * watchperiod n ... every n seconds, a state frame will be printed. n=-1 turns off the state strings.
 * state n ... output n lines of status strings
 * dist  n ... set the distance for move commands (to be given in key mode, such as "w", which will make Tello go up n centimeters)
 * ang   n ... set the angle for rotate commands (to be given in key mode, such as "a", which will make Tello turn left n degrees)
+* oscommand ... invoke an operating system command (like "dir") in an new window
+* vido      ... turn video stream on and open an external video player (ffmpeg) in a new window
 * script file... opens file which contains commands to execute
 * sleep n ... pause for n seconds (fractons of seconds are allowed)
 * end     ... end tellTello
@@ -35,6 +39,7 @@ Use the ESC key to switch back to string-based input.
 * j  ... enter joystick mode
 * k  ... enter key mode
 * h,H,5,space ... stop current movement and hover
+* v  ... start video
 * ESC... return to string-based input
 #### Motion keys in key mode:
 * w or 8 ... go up dist centimeters      (see "dist" command)
@@ -45,10 +50,10 @@ Use the ESC key to switch back to string-based input.
 *  left   ... go left dist centimeters    (see "dist" command)
 *  down   ... go backward dist centimeters(see "dist" command)
 *  right  ... go right dist centimeters   (see "dist" command)
-*  -  ... reduce "dist" by half         (see "dist" command)
-*  +  ... double "dist"                 (see "dist" command)
-*  /  ... reduce "ang" by half          (see "ang" command)
-*  *  ... double "ang"                  (see "ang" command)
+*  "-"  ... reduce "dist" by half         (see "dist" command)
+*  "+"  ... double "dist"                 (see "dist" command)
+*  "/"  ... reduce "ang" by half          (see "ang" command)
+*  "*"  ... double "ang"                  (see "ang" command)
 #### Motion keys  in joystick mode:
 * w or 8 ... move simulated joystick up by 10%
 * a or 4 ... move simulated joystick ccw by 10%
