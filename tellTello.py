@@ -3,11 +3,11 @@
 
 # todo:
 # don't print watch immediately but write it to an array and print it later 
-# different watch mode which is mor human-readable 
+# different watch mode which is more human-readable 
 # shift-w/a/s/d/left/..... do double dist/angle 
-# function keys while usung key mode 
-# joystick-mode: "ready for takeoff": rc -100 -100 -100 100
-# Ctrl-C in key or joy mode causes program to hang 
+# issue: Ctrl-C in key or joy mode causes program to hang 
+# user-definable function keys while usung key mode 
+# joystick mode: expo 
 
 # done:
 # scripting feature 
@@ -19,10 +19,14 @@
 # sleep command (via timer task, don't use python's sleep command - so the user can interact while sleeping) 
 # spacebar to stop (key and joy mode)
 # joystick mode, send rc commands
+# os command in extra window
+# video-stream (first approach): send streamon and start external program like ffmpeg (additionally: let user enter an os command)
+# joystick-mode: "ready for takeoff": rc -100 -100 -100 100
 
 import threading 
 import socket
 import sys
+import os
 import time
 from pythonping import ping
 import msvcrt					# works for windows only. Linux users, import getch instead (not tested)
@@ -33,7 +37,7 @@ import argparse
 def help ():
 	'''print help message. +++ variaous topics +++ information like battery, temperature '''
 	
-	print ("# tellTello.py V 1.1")
+	print ("# tellTello.py V 1.2")
 	print ("# ******************")
 	print ("")
 	print ("A console-based frontend to the SDK of the Ryze Tello Quadrocopter")
@@ -45,28 +49,37 @@ def help ():
 	print ("")
 	
 	print ("## Input methods: string- or key-based. ")
-	print ("The program starts with string-based input. Use the command \"key\" to switch to key-based input. ")
-	print ("Use the ESC key to switch back to string-basedinput. ")
+	print ("The program starts with string-based input. Use the command \"key\" or \"joy\" to switch to key-based input. ")
+	print ("Use the ESC key to switch back to string-based input. ")
 	print ("")
 	print ("### String-based inputs: All SDK commands such as \"takeoff\" or \"speed 80\" plus the following: ")
 	print ("* help    ... this help")
 	print ("* key     ... enter key mode")
 	print ("* joy     ... enter joystick mode")
+	print ("* ready   ... start motors and enter joystick mode")
 	print ("* watch a b c d ... select which values to extrace from state string, like \"watch bat baro agx\". \"watch\" without parameters will reset to non-interpreted state.")
 	print ("* watchperiod n ... every n seconds, a state frame will be printed. n=-1 turns off the state strings. ")
 	print ("* state n ... output n lines of status strings")
 	print ("* dist  n ... set the distance for move commands (to be given in key mode, such as \"w\", which will make Tello go up n centimeters)")
 	print ("* ang   n ... set the angle for rotate commands (to be given in key mode, such as \"a\", which will make Tello turn left n degrees)")
+	print ("* oscommand ... invoke an operating system command (like \"dir\") in an new window")
+	print ("* vido      ... turn video stream on and open an external video player (ffmpeg) in a new window")
 	print ("* script file... opens file which contains commands to execute ")
 	print ("* sleep n ... pause for n seconds (fractons of seconds are allowed) ")
 	print ("* end     ... end tellTello")
 	print ("")
-	print ("### key-based command input:")
+	print ("### key-based command input (key and joy modes):")
 	print ("* F1 or ? ... this help")
 	print ("* F2 ... print one status string (equals \"state 1\")")
 	print ("* c  ... command (send the string \"command\" to Tello)")
 	print ("* t  ... takeoff")
 	print ("* l  ... land")
+	print ("* p  ... \"PANIC!\" = stop motors immediately")
+	print ("* j  ... enter joystick mode")
+	print ("* k  ... enter key mode")
+	print ("* h,H,5,space ... stop current movement and hover")
+	print ("* v  ... start video")
+	print ("* ESC... return to string-based input")
 	print ("#### Motion keys in key mode: ")
 	print ("* w or 8 ... go up dist centimeters      (see \"dist\" command)")
 	print ("* a or 4 ... turn left (ccw) ang degrees (see \"ang\"  command)")
@@ -76,6 +89,10 @@ def help ():
 	print ("*  left   ... go left dist centimeters    (see \"dist\" command)")
 	print ("*  down   ... go backward dist centimeters(see \"dist\" command)")
 	print ("*  right  ... go right dist centimeters   (see \"dist\" command)")
+	print ("*  \"-\"  ... reduce \"dist\" by half         (see \"dist\" command)")
+	print ("*  \"+\"  ... double \"dist\"                 (see \"dist\" command)")
+	print ("*  \"/\"  ... reduce \"ang\" by half          (see \"ang\" command)")
+	print ("*  \"*\"  ... double \"ang\"                  (see \"ang\" command)")
 	print ("#### Motion keys  in joystick mode: ")
 	print ("* w or 8 ... move simulated joystick up by 10%      ")
 	print ("* a or 4 ... move simulated joystick ccw by 10%")
@@ -85,15 +102,6 @@ def help ():
 	print ("* left   ... move simulated joystick left by 10%    ")
 	print ("* down   ... move simulated joystick back by 10%")
 	print ("* right  ... move simulated joystick right by 10%")
-	print ("* h,H,5,space ... stop current movement and hover")
-	print ("* p  ... \"PANIC!\" = stop motors immediately")
-	print ("*  -  ... reduce \"dist\" by half         (see \"dist\" command)")
-	print ("*  +  ... double \"dist\"                 (see \"dist\" command)")
-	print ("*  /  ... reduce \"ang\" by half          (see \"ang\" command)")
-	print ("*  *  ... double \"ang\"                  (see \"ang\" command)")
-	print ("* j  ... enter joystick mode")
-	print ("* k  ... enter key mode")
-	print ("* ESC... return to string-based input")
 	print ("")
 
 #-----------------------------------------------------------------------------------
@@ -614,6 +622,8 @@ def main():
 					elif (chr(Char1[0]) == '?'):
 						help()
 						msg = ''
+					elif (chr(Char1[0]) == 'v'):
+						msg = 'video'
 					elif (chr(Char1[0]) == 'j'):
 						msg = ''
 						InputModeString = False
@@ -703,6 +713,9 @@ def main():
 					InputModeJoy    = True
 					debug (2, "Use keys to control Tello - t,l,w/a/s/d, cursor keys, ESC to end key mode")
 					msg = ''
+				elif (keyword == 'ready'):
+					Commands = ["rc -100 -100 -100 100", "sleep 0.5", "rc 0 0 0 0", "joy"] + Commands
+					msg = ''
 				elif (keyword == 'watch'):
 					Watches = msg.split()
 					Watches.pop(0)
@@ -728,6 +741,14 @@ def main():
 				elif (keyword =='debug'):
 					if (len(Splitted) > 1):
 						DebugLevel = int(Splitted[1])
+						msg = ''
+				elif (keyword =='oscommand'):
+					msg = msg[10:]						# remove keyword and first blank from cmd
+					os.system("start cmd /k " + msg) # windows-specific! 
+					msg = ''
+				elif (keyword =='video'):
+					Commands = ["streamon", "oscommand FFmpeg -i udp://192.168.10.1:11111 -f sdl \"tellTello Video Window\""] + Commands
+					msg = ''
 				elif (keyword =='script'):
 					if (len(Splitted) > 1):
 						if (not scriptRead (Splitted[1], 'i')):
