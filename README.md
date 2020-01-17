@@ -1,5 +1,4 @@
-
-# tellTello.py V 1.2
+# tellTello.py V 1.3
 # ******************
 
 A console-based frontend to the SDK of the Ryze Tello Quadrocopter
@@ -17,10 +16,15 @@ Use the ESC key to switch back to string-based input.
 * help    ... this help
 * key     ... enter key mode
 * joy     ... enter joystick mode
+* debug n ... set debug level to n. Default = 1
 * ready   ... start motors and enter joystick mode
 * watch a b c d ... select which values to extrace from state string, like "watch bat baro agx". "watch" without parameters will reset to non-interpreted state.
-* watchperiod n ... every n seconds, a state frame will be printed. n=-1 turns off the state strings.
+* wp n or watchperiod n ... every n seconds, a state frame will be printed. n=-1 turns off the state strings.
+  wp or watchperiod without parameter: toggle watch on/off
+* ww      ... watch write
+* wc      ... watch clear
 * state n ... output n lines of status strings
+* health  ... print some status values (Caution, values may be stale)
 * dist  n ... set the distance for move commands (to be given in key mode, such as "w", which will make Tello go up n centimeters)
 * ang   n ... set the angle for rotate commands (to be given in key mode, such as "a", which will make Tello turn left n degrees)
 * oscommand ... invoke an operating system command (like "dir") in an new window
@@ -64,22 +68,21 @@ Use the ESC key to switch back to string-based input.
 * down   ... move simulated joystick back by 10%
 * right  ... move simulated joystick right by 10%
 
-## command line:
+## command line
+usage: tellTello.py [-h] [--ip IP] [-s SCRIPT] [-w WATCH] [-o OFFLINE]
+                    [-d DEBUG]
 
-python tellTello.py [arguments]
+tellTello - a console program for the Ryze Robotics Tello quadrocopter
 
-*   -h, --help            show this help message and exit
-*   --ip IP               ip address, default=192.168.10.1
-*   -s SCRIPT, --script SCRIPT
+optional arguments:
+  -h, --help            show this help message and exit
+  --ip IP               ip address, default=192.168.10.1
+  -s SCRIPT, --script SCRIPT
                         script to execute
-*   -w WATCH, --watch WATCH
+  -w WATCH, --watch WATCH
                         list of watch expressions like "mid x y z"
-*   -o OFFLINE, --offline OFFLINE
+  -o OFFLINE, --offline OFFLINE
                         test this program without being connected to a Tello
-*   -d DEBUG, --debug DEBUG
+  -d DEBUG, --debug DEBUG
                         debug level ... 0=no debug messages, higher number for
                         more messages
-
-enter "help" command for more information
-
-
