@@ -1,27 +1,50 @@
 # tello demo by Ryze Robotics, modified by Martin Piehslinger
 
+'''
+# history:
+
+## V 1.3
+new commands: wp, wc, ww for csv-formatted watch 
+print csv when ending tellTello
+human-readable watch display (tabstopps)
+bugfix in "ready" command
+display "usage" at the end of the help screen
+
+## V 1.2
+new commands:
+* oscommand - start external command in new window 
+* video - start video stream and run ffmpeg in new window 
+* ready - ready for takeoff: start motors and enter joystick mode
+
+## V 1.1
+joystick mode - simulate a joystick (controller) with the keyboard
+
 
 # todo:
-# don't print watch immediately but write it to an array and print it later 
-# different watch mode which is more human-readable 
-# shift-w/a/s/d/left/..... do double dist/angle 
-# issue: Ctrl-C in key or joy mode causes program to hang 
-# user-definable function keys while usung key mode 
-# joystick mode: expo 
+shift-w/a/s/d/left/..... do double dist/angle 
+issue: Ctrl-C in key or joy mode causes program to hang 
+user-definable function keys while usung key mode 
+joystick mode: expo 
+altitude stabilisation with baro sensor 
 
 # done:
-# scripting feature 
-# commands are not interpreted immediately but inserted into the commands array 
-# timer task .... keepalive and regular status updates 
-# recvBasic: interpretation of answer 
-# watch feature
-# debug feature
-# sleep command (via timer task, don't use python's sleep command - so the user can interact while sleeping) 
-# spacebar to stop (key and joy mode)
-# joystick mode, send rc commands
-# os command in extra window
-# video-stream (first approach): send streamon and start external program like ffmpeg (additionally: let user enter an os command)
-# joystick-mode: "ready for takeoff": rc -100 -100 -100 100
+scripting feature 
+commands are not interpreted immediately but inserted into the commands array 
+timer task .... keepalive and regular status updates 
+recvBasic: interpretation of answer 
+watch feature
+debug feature
+sleep command (via timer task, don't use python's sleep command - so the user can interact while sleeping) 
+spacebar to stop (key and joy mode)
+joystick mode, send rc commands
+os command in extra window
+video-stream (first approach): send streamon and start external program like ffmpeg (additionally: let user enter an os command)
+joystick-mode: "ready for takeoff": rc -100 -100 -100 100
+string input: shorter commands like wp an an alternative to watchperiod (becuase it is hard to type when watch is on) 
+different watch mode which is more human-readable 
+issue: "ready" works only if I have done a takeoff before (What if I end and restart tellTello?) 
+don't print watch immediately but write it to an array and print it later 
+'''
 
 import threading 
 import socket
@@ -30,14 +53,13 @@ import os
 import time
 from pythonping import ping
 import msvcrt					# works for windows only. Linux users, import getch instead (not tested)
-import time 
 import argparse
 
 #-----------------------------------------------------------------------------------
-def help ():
+def help (parser):
 	'''print help message. +++ variaous topics +++ information like battery, temperature '''
 	
-	print ("# tellTello.py V 1.2")
+	print ("# tellTello.py V 1.3")
 	print ("# ******************")
 	print ("")
 	print ("A console-based frontend to the SDK of the Ryze Tello Quadrocopter")
@@ -56,10 +78,15 @@ def help ():
 	print ("* help    ... this help")
 	print ("* key     ... enter key mode")
 	print ("* joy     ... enter joystick mode")
+	print ("* debug n ... set debug level to n. Default = 1")
 	print ("* ready   ... start motors and enter joystick mode")
 	print ("* watch a b c d ... select which values to extrace from state string, like \"watch bat baro agx\". \"watch\" without parameters will reset to non-interpreted state.")
-	print ("* watchperiod n ... every n seconds, a state frame will be printed. n=-1 turns off the state strings. ")
+	print ("* wp n or watchperiod n ... every n seconds, a state frame will be printed. n=-1 turns off the state strings. ")
+	print ("  wp or watchperiod without parameter: toggle watch on/off")
+	print ("* ww      ... watch write")
+	print ("* wc      ... watch clear")
 	print ("* state n ... output n lines of status strings")
+	print ("* health  ... print some status values (Caution, values may be stale)")
 	print ("* dist  n ... set the distance for move commands (to be given in key mode, such as \"w\", which will make Tello go up n centimeters)")
 	print ("* ang   n ... set the angle for rotate commands (to be given in key mode, such as \"a\", which will make Tello turn left n degrees)")
 	print ("* oscommand ... invoke an operating system command (like \"dir\") in an new window")
@@ -103,6 +130,9 @@ def help ():
 	print ("* down   ... move simulated joystick back by 10%")
 	print ("* right  ... move simulated joystick right by 10%")
 	print ("")
+	print ("## command line")
+	parser.print_help()
+
 
 #-----------------------------------------------------------------------------------
 def debug (Level, Message, end = '\n'):
@@ -117,9 +147,10 @@ def recvBasic():
 	global TimeSent
 	global TelloReady
 	global Running
-	global DataDecoded
+	# global DataDecoded
 	global SockBasic
 	global LastCommand
+	global TelloInfo
 	
 	debug (3, "Tello recvBasic task started")
 	count = 0
@@ -150,19 +181,25 @@ def recvBasic():
 			if (DataDecoded != 'ok'):
 				if (LastCommand == 'wifi?'):
 					try: 
-						WifiSnr = int(DataDecoded)
+						TelloInfo["wifi"] = int(DataDecoded)
 					except Exception:
-						WifiSnr = -1
-					debug (3, "wifi signal noise ratio " + str(WifiSnr))
+						TelloInfo["wifi"] = -1
+					debug (3, "wifi signal noise ratio " + str(TelloInfo["wifi"]))
 				elif (LastCommand == 'sdk?'):
 					if (DataDecoded == 'unknown command'):
-						Sdk = 10    # assume that we are on SDK 1.x 
+						TelloInfo["sdk"] = 10    # assume that we are on SDK 1.x 
 					else:
 						try: 
-							Sdk = int(DataDecoded)
+							TelloInfo["sdk"] = int(DataDecoded)
 						except Exception:
-							Sdk = -1
-					debug (3, "SDK version " + str(Sdk))
+							TelloInfo["sdk"] = -1
+					debug (3, "SDK version " + str(TelloInfo["sdk"]))
+				elif (LastCommand == 'battery?'):
+					try: 
+						TelloInfo["bat"] = int(DataDecoded)
+					except Exception:
+						TelloInfo["bat"] = -1
+					debug (3, "Battery " + str(TelloInfo["bat"]))
 	
 
 
@@ -205,9 +242,8 @@ def recvState():
 		if (not RecvError):
 			StateDecoded = data.decode(encoding="utf-8")
 			if (NumFrames > 0):
-				if (len(WhichWatch)>0): 
-					interpreteState (StateDecoded)
-				else:
+				interpreteState (StateDecoded)
+				if (len(WhichWatch) == 0): 
 					print(StateDecoded)
 				NumFrames = NumFrames - 1
 
@@ -218,7 +254,6 @@ def recvState():
 def recvStateDummy():
 	''' for offline testing '''
 	global Running
-	# global StateDecoded
 	global NumFrames
 	
 	debug (3, "recvState started")
@@ -227,10 +262,9 @@ def recvStateDummy():
 	while (Running):
 		StateDecoded = "mid:-1;x:0;y:0;z:0;mpry:0,0,0;pitch:-1;roll:0;yaw:0;vgx:0;vgy:0;vgz:0;templ:51;temph:54;tof:10;h:0;bat:88;baro:38.28;time:0;agx:-13.00;agy:-5.00;agz:-998.00;"
 		if (NumFrames > 0):
-			if (len(WhichWatch)>0): 
-				interpreteState (StateDecoded)
-			else:
-				print (StateDecoded)
+			interpreteState (StateDecoded)
+			if (len(WhichWatch) == 0): 
+				print(StateDecoded)
 			NumFrames = NumFrames - 1
 
 		time.sleep (1)
@@ -244,6 +278,8 @@ def interpreteState (StateString):
 	global WhichWatch
 	global OldWhichWatch
 	global LastCommand
+	global TelloInfo
+	global Watchlist
 
 
 	StateSplitted = StateString.split(';')
@@ -255,27 +291,37 @@ def interpreteState (StateString):
 			value = PairSplitted[1]
 			debug (6, "keyword = " + keyword + " value= " + value)
 			StateDict[keyword] = value
-	
-	if (OldWhichWatch != WhichWatch):		# new watch set, we'll write a header for the CVS
-		OutString = "watch;time;"
-		for Key in WhichWatch:
-			OutString = OutString + Key + ';'
-		OutString = OutString + "LastCommand" + ';'
-		print (OutString)
-		OldWhichWatch = WhichWatch
-	
-	OutString = "watch;" + str(time.time()) + ';'
-	for Key in WhichWatch:
-		try:
-			Value = StateDict[Key]
-		except Exception:
-			Value = 'error'
-		OutString = OutString + Value + ';'
-	OutString = OutString + LastCommand + ';'
-	OutString = OutString.replace ('.',',') # +++ add an arg to decide whether or not to replace
-	print (OutString)
+
+	if (len(WhichWatch)>0):
+		if (OldWhichWatch != WhichWatch):		# new watch set, we'll write a header for the CVS
+			OutString = "watch;time;"
+			OutPrint  = ""
+			for Key in WhichWatch:
+				OutString = OutString + Key + ';'
+				OutPrint  = OutPrint  + Key + '\t'
+			OutString = OutString + "LastCommand" + ';'
+			Watchlist = Watchlist + [OutString]
+			print (OutPrint)
+			OldWhichWatch = WhichWatch
 		
-	
+		OutString = "watch;" + str(time.time()) + ';'
+		OutPrint  = ""
+		for Key in WhichWatch:
+			try:
+				Value = StateDict[Key]
+			except Exception:
+				Value = 'error'
+			OutString = OutString + Value + ';'
+			OutPrint  = OutPrint  + Value + '\t'
+		OutString = OutString + LastCommand + ';'
+		OutString = OutString.replace ('.',',') # +++ add an arg to decide whether or not to replace
+		print (OutPrint)
+		Watchlist = Watchlist + [OutString]
+
+
+		
+	TelloInfo["bat"] = int(StateDict["bat"])
+	TelloInfo["temp"] = round((int(StateDict["temph"]) + int(StateDict["templ"])) / 2)
 #--------------------------------------------------------------------------
 def timerFunc():
 	''' schedule keepalive and watch '''
@@ -286,6 +332,7 @@ def timerFunc():
 	global TimeState
 	global WatchPeriod
 	global SleepTime
+	global TelloInfo
 	
 	debug (3, "Timer task started")
 	Time = time.time()
@@ -303,7 +350,7 @@ def timerFunc():
 			debug (4, str(Time) + ", time to wake up")
 	
 		if (Time > TimeKeepalive):
-			sendCommand ("wifi?")	# +++ make it dependent of SDK version
+			sendCommand ("wifi?")
 	
 	debug (3, "Timer task ended")
 #--------------------------------------------------------------------------
@@ -371,12 +418,13 @@ def sendCommand(msg):
 	global tello_address
 	global LastCommand
 	
+	
 	LastCommand = msg
 	debug (2, msg, end='')
 	
-	if (not ('rc') in msg):
+	if (not msg.startswith( 'rc')): 
 		TelloReady = False
-	
+		
 	msg = msg.encode(encoding="utf-8") 
 	if (not Offline):
 		sent = SockBasic.sendto(msg, tello_address)
@@ -404,7 +452,7 @@ def rcCommand (RcArray):
 
 '''global variables'''
 Running = True
-DataDecoded = ""
+# DataDecoded = ""
 # StateDecoded = ""
 IpAddress = '192.168.10.1'
 host = ''
@@ -424,6 +472,8 @@ DebugLevel = 3
 tello_address = ('', 0)
 LastCommand = ""
 SleepTime = -1
+TelloInfo = {"sdk":-1,"bat":-1,"temp":-1,"wifi":-1}
+Watchlist = []
 
 #--------------------------------------------------------------
 def main():
@@ -440,6 +490,8 @@ def main():
 	global DebugLevel
 	global tello_address
 	global SleepTime
+	global TelloInfo
+	global Watchlist
 
 	Rc = [0,0,0,0]
 	InputModeString = True
@@ -538,6 +590,7 @@ def main():
 					if   (chr(Char1[0]) == 'c'):
 						msg = 'command'
 					elif (chr(Char1[0]) == 't'):
+						Rc = [0,0,0,0]
 						msg = 'takeoff'
 					elif (chr(Char1[0]) == 'l'):
 						msg = 'land'
@@ -620,8 +673,10 @@ def main():
 							Angle = 3600
 						msg = "ang " + str(Angle)
 					elif (chr(Char1[0]) == '?'):
-						help()
-						msg = ''
+						# help()
+						# parser.print_help()
+						# msg = ''
+						msg = "help"
 					elif (chr(Char1[0]) == 'v'):
 						msg = 'video'
 					elif (chr(Char1[0]) == 'j'):
@@ -666,8 +721,9 @@ def main():
 								msg = 'right ' + str (Dist)
 					elif (Char1[0] == 0):
 						if   (Char2[0] == 59):		# F1
-							help()
-							msg = ''
+							# help()
+							# msg = ''
+							msg = "help"
 						elif (Char2[0] == 60):		# F2
 							msg = "state 1"
 
@@ -689,13 +745,17 @@ def main():
 					Running = False
 					msg = ''
 				elif (keyword in ['help', 'h', '?', 'e']):
-					help()
+					help(parser)
+					# parser.print_help()
+					msg = ''
+				elif (keyword == 'health'):
+					print (TelloInfo)
 					msg = ''
 				elif (keyword == 'state'):
 					if (len(Splitted) > 1):
 						NumFrames = int(Splitted[1])
 					else:
-						debug (1, "please specify the nuber of state frames to be printed")
+						NumFrames = 1
 					msg = ''
 				elif (keyword == 'dist'):
 					Dist = int(Splitted[1])
@@ -711,22 +771,36 @@ def main():
 				elif (keyword == 'joy'):
 					InputModeString = False
 					InputModeJoy    = True
+					Rc = [0,0,0,0]
 					debug (2, "Use keys to control Tello - t,l,w/a/s/d, cursor keys, ESC to end key mode")
 					msg = ''
 				elif (keyword == 'ready'):
-					Commands = ["rc -100 -100 -100 100", "sleep 0.5", "rc 0 0 0 0", "joy"] + Commands
+					Commands = ["rc -100 -100 -100 100", "joy"] + Commands
+					Rc = [0,0,0,0]
 					msg = ''
 				elif (keyword == 'watch'):
 					Watches = msg.split()
 					Watches.pop(0)
 					WhichWatch = Watches
 					msg = ''
-				elif (keyword == 'watchperiod'):
+				elif (keyword in ['watchperiod', 'wp']):
 					try:
 						WatchPeriod = float(Splitted[1])
 					except Exception:
-						WatchPeriod =  -1
+						if (WatchPeriod > 0): 
+							WatchPeriod =  -1
+						else:
+							WatchPeriod =  1
 					debug (3, "wach period = " + str (WatchPeriod))
+					msg = ''
+				elif (keyword == 'ww'):
+					print ('')
+					for Line in Watchlist:
+						debug (1, Line)
+					print ('')
+					msg = ''
+				elif (keyword == 'wc'):
+					Watchlist = []
 					msg = ''
 				elif (keyword == 'sleep'):
 					try:
@@ -741,13 +815,16 @@ def main():
 				elif (keyword =='debug'):
 					if (len(Splitted) > 1):
 						DebugLevel = int(Splitted[1])
-						msg = ''
+					else:
+						DebugLevel = 1
+					msg = ''
 				elif (keyword =='oscommand'):
 					msg = msg[10:]						# remove keyword and first blank from cmd
 					os.system("start cmd /k " + msg) # windows-specific! 
 					msg = ''
 				elif (keyword =='video'):
 					Commands = ["streamon", "oscommand FFmpeg -i udp://192.168.10.1:11111 -f sdl \"tellTello Video Window\""] + Commands
+					# Commands = ["streamon", "oscommand ffplay -probesize 5000000 -i udp://0.0.0.0:11111 -framerate 35"] + Commands
 					msg = ''
 				elif (keyword =='script'):
 					if (len(Splitted) > 1):
@@ -759,6 +836,8 @@ def main():
 				else:
 					# Send data
 					if (TelloReady):
+						if (msg == 'takeoff'):				# center simulated sticks before takeoff 
+							Rc = [0,0,0,0]
 						sendCommand (msg)
 						msg = ''
 			
@@ -779,6 +858,12 @@ def main():
 	if (args.offline == 'No'):
 		SockBasic.close()  
 		SockState.close()
+	
+	print ('')
+	for Line in Watchlist:
+		debug (1, Line)
+	print ('')
+	
 	debug (2, "Thank you for using tellTello")
 
 #--------------------------------------------------------------------------
